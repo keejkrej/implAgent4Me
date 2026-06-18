@@ -22,7 +22,9 @@ parent/
 ├── hermes-agent/
 ├── ai/
 ├── eve/
-└── openclaw/
+├── openclaw/
+├── crush/
+└── claude-code/
 ```
 
 **On invoke:** read [repos.manifest.json](repos.manifest.json) for the repo list. Verify each `../<clone_dir>/` exists (or run `scripts/status-refs.sh`). If any are missing, list them with their `url` from the manifest and **stop** — ask the user to clone manually. Do not substitute paths or clone repos yourself.
@@ -89,7 +91,7 @@ Copy code that answers how the framework **runs**, **remembers**, **injects cont
 Read clone targets from `repos.manifest.json`, then:
 
 ```bash
-.cursor/skills/crawl-reference-repos/scripts/status-refs.sh
+.agents/skills/crawl-reference-repos/scripts/status-refs.sh
 ```
 
 Or manually: for each `.repos[].clone_dir`, test `../<clone_dir>/`.

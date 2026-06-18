@@ -38,6 +38,20 @@
       "clone_dir": "openclaw",
       "snippet_dir": "openclaw",
       "url": "https://github.com/keejkrej/openclaw.git"
+    },
+    {
+      "id": "crush",
+      "clone_dir": "crush",
+      "snippet_dir": "crush",
+      "url": "https://github.com/keejkrej/crush.git",
+      "notes": "Charm terminal agent — internal/agent, fantasy LLM layer"
+    },
+    {
+      "id": "claude-code",
+      "clone_dir": "claude-code",
+      "snippet_dir": "claude-code",
+      "url": "https://github.com/keejkrej/claude-code.git",
+      "notes": "Anthropic-style CLI agent — src/query.ts tool loop"
     }
   ]
 }

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-IMPL_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+IMPL_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 MANIFEST="${IMPLAGENT4_REFS_MANIFEST:-$SCRIPT_DIR/../repos.manifest.json}"
 REFS_PARENT="$(cd "$IMPL_ROOT/.." && pwd)"
 

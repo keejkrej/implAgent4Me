@@ -101,6 +101,47 @@ Use with ripgrep; line numbers drift — always verify with `rg -n` before writi
 
 ---
 
+## `../crush`
+
+| Layer | Start here | Search terms |
+|-------|------------|--------------|
+| Brain | `internal/agent/agent.go` | `sessionAgent`, `Run(`, `fantasy.NewAgent`, `messageQueue` |
+| Brain (multi-agent) | `internal/agent/coordinator.go` | `Coordinator`, `Run(`, `Cancel`, `IsSessionBusy` |
+| Bone (session) | `internal/session/session.go` | `Session`, SQLite CRUD |
+| Bone (messages) | `internal/message/` | `Attachment`, content types |
+| Flesh (prompt) | `internal/agent/prompts.go`, `internal/agent/templates/` | `systemPrompt`, `*.md.tpl` |
+| Flesh (tools) | `internal/agent/tools/` | `NewWriteTool`, `NewViewTool`, `hooked_tool.go` |
+| Flesh (hooks) | `internal/hooks/hooks.go`, `internal/hooks/runner.go` | `PreToolUse`, `Decision`, hook aggregation |
+| Flesh (skills) | `internal/skills/` | `CatalogEntry`, `SKILL.md` discovery |
+| MCP | `internal/agent/tools/mcp/` | MCP client, server instructions injection |
+
+**Already in catalog:** (none yet)
+
+**Worth next:** `agent.go` Run loop + queue drain, `hooked_tool.go`, `prompts.go` context file injection (AGENTS.md / CLAUDE.md), `internal/permission/`, LSP context wiring in `internal/lsp/`.
+
+---
+
+## `../claude-code`
+
+| Layer | Start here | Search terms |
+|-------|------------|--------------|
+| Brain | `src/query.ts` | tool loop, `getAttachmentMessages`, compaction boundary |
+| Brain (tools) | `src/services/tools/toolExecution.ts` | `runToolUse`, `MessageUpdateLazy` |
+| Brain (orchestration) | `src/services/tools/toolOrchestration.ts` | parallel tool dispatch |
+| Bone (compact) | `src/services/compact/compact.ts` | `buildPostCompactMessages`, auto-compact |
+| Bone (session) | `src/utils/sessionStorage.ts`, `src/utils/messages.ts` | transcript persistence, normalize |
+| Flesh (prompt) | `src/utils/systemPrompt.ts`, `src/constants/systemPromptSections.ts` | `asSystemPrompt`, `systemPromptSection` |
+| Flesh (context) | `src/utils/attachments.ts` | `createAttachmentMessage`, CLAUDE.md injection |
+| Flesh (tools) | `src/Tool.ts`, `src/tools.ts` | `findToolByName`, `getAllBaseTools` |
+| Flesh (hooks) | `src/services/tools/toolHooks.ts` | shared hook runner for query + REPL |
+| Subagents | `src/tools/AgentTool/runAgent.ts` | nested agent runs, max turns |
+
+**Already in catalog:** (none yet)
+
+**Worth next:** `query.ts` main loop entry, `toolExecution.ts` permission + hook pipeline, `compact.ts` reactive compact, `attachments.ts` memory/rules loading.
+
+---
+
 ## Cross-repo contrast shortcuts
 
 When deciding whether a pattern is worth copying, check if it fills a gap in `AGENTS.md` **Design contrasts** table:
@@ -124,6 +165,7 @@ Copy the upstream code that **implements** the answer, not the docs that describ
 # Loop owners across all refs
 rg -n "export (async )?function (agentLoop|run_conversation|runEmbeddedAttempt|createToolLoopHarness)" ../oh-my-pi ../hermes-agent ../openclaw ../eve 2>/dev/null
 rg -n "class ToolLoopAgent" ../ai
+rg -n "func \(a \*sessionAgent\) Run|export async function query" ../crush/internal/agent ../claude-code/src 2>/dev/null
 
 # Memory injection
 rg -n "prefetch|build_memory_context|format_for_system_prompt|buildMemoryPromptSection|MEMORY\.md" \
