@@ -1,0 +1,43 @@
+{
+  "$schema": "implAgent4 reference repos — sibling clones under the parent of this repo",
+  "layout": {
+    "impl_agent_root": ".",
+    "refs_parent": "..",
+    "comment": "After clone, paths resolve as ../<clone_dir> from implAgent4 root"
+  },
+  "repos": [
+    {
+      "id": "oh-my-pi",
+      "clone_dir": "oh-my-pi",
+      "snippet_dir": ["pi", "oh-my-pi"],
+      "url": "https://github.com/keejkrej/oh-my-pi.git",
+      "notes": "pi core: packages/agent. OMP product: packages/coding-agent"
+    },
+    {
+      "id": "hermes-agent",
+      "clone_dir": "hermes-agent",
+      "snippet_dir": "hermes",
+      "url": "https://github.com/keejkrej/hermes-agent.git"
+    },
+    {
+      "id": "ai",
+      "clone_dir": "ai",
+      "snippet_dir": "ai",
+      "url": "https://github.com/keejkrej/ai.git",
+      "notes": "Vercel AI SDK — packages/ai/src"
+    },
+    {
+      "id": "eve",
+      "clone_dir": "eve",
+      "snippet_dir": "eve",
+      "url": "https://github.com/keejkrej/eve.git",
+      "notes": "packages/eve/src/harness"
+    },
+    {
+      "id": "openclaw",
+      "clone_dir": "openclaw",
+      "snippet_dir": "openclaw",
+      "url": "https://github.com/keejkrej/openclaw.git"
+    }
+  ]
+}
