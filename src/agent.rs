@@ -12,6 +12,8 @@
 //! impl Agent for AiToolLoopAgent → snippets/ai/*.ts
 //! impl Agent for EveHarness        → snippets/eve/*.ts
 //! impl Agent for OpenClawEmbedded  → snippets/openclaw/*.ts
+//! impl Agent for CrushSessionAgent → snippets/crush/*.go
+//! impl Agent for ClaudeCodeQuery   → snippets/claude-code/*.ts
 //! ```
 
 use std::future::Future;
@@ -82,6 +84,8 @@ pub struct HermesAIAgent;
 pub struct AiToolLoopAgent;
 pub struct EveHarness;
 pub struct OpenClawEmbedded;
+pub struct CrushSessionAgent;
+pub struct ClaudeCodeQuery;
 
 impl Agent for PiLoop {
     fn run_turn(&mut self, _: Vec<Message>, _: &AgentConfig) -> Pin<Box<dyn Future<Output = TurnResult> + '_>> {
@@ -224,5 +228,41 @@ impl Agent for OpenClawEmbedded {
     }
     fn budget_remaining(&self) -> Option<u32> {
         unimplemented!("see snippets/openclaw/memory.flush-gate.ts — shouldRunMemoryFlush")
+    }
+}
+
+impl Agent for CrushSessionAgent {
+    fn run_turn(&mut self, _: Vec<Message>, _: &AgentConfig) -> Pin<Box<dyn Future<Output = TurnResult> + '_>> {
+        unimplemented!("see snippets/crush/coordinator.run.go — coordinator.Run → sessionAgent.Run")
+    }
+    fn continue_turn(&mut self, _: &AgentConfig) -> Pin<Box<dyn Future<Output = TurnResult> + '_>> {
+        unimplemented!("see snippets/crush/agent.prepare-step-queue-drain.go — PrepareStep queue fold")
+    }
+    fn steer(&mut self, _: Message) {
+        unimplemented!("see snippets/crush/agent.message-queue.go — enqueueCall while IsSessionBusy")
+    }
+    fn on_event(&mut self, _: Box<dyn Fn(AgentEvent) + Send>) {
+        unimplemented!("see snippets/crush/agent.run-entry.go — publishRunComplete / message broker")
+    }
+    fn budget_remaining(&self) -> Option<u32> {
+        unimplemented!("fantasy streaming step limits — see snippets/crush/coordinator.run.go")
+    }
+}
+
+impl Agent for ClaudeCodeQuery {
+    fn run_turn(&mut self, _: Vec<Message>, _: &AgentConfig) -> Pin<Box<dyn Future<Output = TurnResult> + '_>> {
+        unimplemented!("see snippets/claude-code/query.entrypoints.ts — query() → queryLoop")
+    }
+    fn continue_turn(&mut self, _: &AgentConfig) -> Pin<Box<dyn Future<Output = TurnResult> + '_>> {
+        unimplemented!("see snippets/claude-code/query.loop-continue.ts — next while(true) iteration")
+    }
+    fn steer(&mut self, _: Message) {
+        unimplemented!("messageQueueManager + createUserInterruptionMessage — src/query.ts")
+    }
+    fn on_event(&mut self, _: Box<dyn Fn(AgentEvent) + Send>) {
+        unimplemented!("see snippets/claude-code/query.entrypoints.ts — AsyncGenerator yields")
+    }
+    fn budget_remaining(&self) -> Option<u32> {
+        unimplemented!("see snippets/claude-code/query.loop-continue.ts — maxTurns")
     }
 }

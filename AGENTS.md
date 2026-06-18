@@ -22,11 +22,17 @@ snippets/hermes/          Hermes agent core — verbatim Python
 snippets/ai/              Vercel AI SDK `ToolLoopAgent` + inner loop — verbatim TypeScript
 snippets/eve/             Eve harness on top of AI SDK — verbatim TypeScript
 snippets/openclaw/        OpenClaw embedded runner — brain + memory + skills + tools
+snippets/crush/           Charm Crush terminal agent — verbatim Go
+snippets/claude-code/     Anthropic-style CLI agent — verbatim TypeScript
 ```
 
 **Snippets are copies**, not ports. Each file header records the upstream path and line range. They are not wired together and will not compile or run in isolation.
 
-Upstream repos (local paths): `../oh-my-pi`, `../hermes-agent`, `../ai`, `../eve`, `../openclaw`.
+### Reference repo registry
+
+Canonical list of upstream clones: [`.agents/skills/crawl-reference-repos/repos.manifest.json`](.agents/skills/crawl-reference-repos/repos.manifest.json). Per-repo crawl maps (entry files, grep terms, worth-next): [`.agents/skills/crawl-reference-repos/reference-repos.md`](.agents/skills/crawl-reference-repos/reference-repos.md). To refresh or extend the catalog, invoke the [crawl-reference-repos](.agents/skills/crawl-reference-repos/SKILL.md) skill after cloning siblings under the parent directory.
+
+Upstream repos (local paths): `../oh-my-pi` (pi core + OMP), `../hermes-agent`, `../ai`, `../eve`, `../openclaw`, `../crush`, `../claude-code`.
 
 ## The trait (`src/agent.rs`)
 
@@ -87,11 +93,25 @@ flowchart TB
     PAS --> SUB[subscribeEmbeddedAgentSession]
   end
 
+  subgraph crush_fw ["Crush"]
+    SA[sessionAgent.Run] --> FAN[fantasy.NewAgent]
+    SA --> MQ[messageQueue]
+    COO[Coordinator] -.-> SA
+  end
+
+  subgraph claude_code_fw ["claude-code"]
+    Q[query / queryLoop] --> TE[runToolUse]
+    Q --> ATT[getAttachmentMessages]
+    Q --> CMP[buildPostCompactMessages]
+  end
+
   TRAIT[Agent trait] -.-> AL
   TRAIT -.-> RC
   TRAIT -.-> TLA
   TRAIT -.-> HAR
   TRAIT -.-> REA
+  TRAIT -.-> SA
+  TRAIT -.-> Q
 ```
 
 ---
@@ -295,28 +315,110 @@ OpenClaw is a **full product agent framework** built on pi (`createAgentSession`
 
 ---
 
+## `snippets/crush/` — Crush (`crush`)
+
+[Crush](https://github.com/charmbracelet/crush) is Charm's terminal coding agent. Brain is Go: `sessionAgent.Run` drives `fantasy.NewAgent` streaming with per-session `messageQueue` steer while busy. `Coordinator.Run` is the product entry. Bone is SQLite sessions. Flesh: context-file + skills XML in `prompt/prompt.go`, `hooked_tool` PreToolUse pipeline, MCP instructions merged at run time.
+
+### Brain — run loop & steer
+
+| File | Upstream | What it shows |
+|------|----------|---------------|
+| `agent.run-entry.go` | `internal/agent/agent.go` | `Run` entry — busy enqueue, `fantasy.NewAgent`, MCP instructions inject |
+| `agent.prepare-step-queue-drain.go` | same | `PrepareStep` — fold queued prompts into step messages |
+| `agent.message-queue.go` | same | `enqueueCall` + `drainQueueForStep` — steer queue semantics |
+| `coordinator.run.go` | `internal/agent/coordinator.go` | `Coordinator.Run` / `run` — model refresh, `RunComplete` coalescing |
+
+### Bone — session persistence
+
+| File | Upstream | What it shows |
+|------|----------|---------------|
+| `session.create.go` | `internal/session/session.go` | `Session` struct + SQLite `Create` |
+
+### Flesh — prompt, skills, tools
+
+| File | Upstream | What it shows |
+|------|----------|---------------|
+| `prompt.context-files-and-skills.go` | `internal/agent/prompt/prompt.go` | `loadContextFiles` + `skills.ToPromptXML` → system prompt data |
+| `skills.format-prompt-xml.go` | `internal/skills/skills.go` | `ToPromptXML` → `<available_skills>` catalog |
+| `tools.hooked-tool-run.go` | `internal/agent/hooked_tool.go` | PreToolUse hook → allow/deny/halt before inner tool |
+
+| `Agent` trait | Crush symbol |
+|---------------|--------------|
+| `run_turn` | `sessionAgent.Run(ctx, SessionAgentCall)` via `coordinator.Run` |
+| `continue_turn` | `PrepareStep` queue fold + recursive `Run` for queued RunID prompts |
+| `steer` | `enqueueCall` while `IsSessionBusy`; `Coordinator.Cancel` |
+| `on_event` | `publishRunComplete` / message broker subscribers |
+| `budget_remaining` | fantasy streaming step limits; coordinator thinking `budget_tokens` |
+
+**Worth copying later:** full `agent.go` `Stream` callbacks, `internal/permission/`, LSP context in `internal/lsp/`, `internal/agent/tools/mcp/`, `coordinator.Cancel`.
+
+---
+
+## `snippets/claude-code/` — claude-code (`claude-code`)
+
+Anthropic-style CLI agent. Brain: async-generator `query` → `queryLoop` `while (true)` over model + `runToolUse`. Bone: `compactConversation` / `buildPostCompactMessages`. Flesh: `buildEffectiveSystemPrompt`, `getAttachmentMessages` + nested CLAUDE.md traversal, `runPreToolUseHooks`, subagents via `runAgent`.
+
+### Brain — query loop & tools
+
+| File | Upstream | What it shows |
+|------|----------|---------------|
+| `query.entrypoints.ts` | `src/query.ts` | `query` → `queryLoop` generator entry |
+| `query.loop-start.ts` | same | `while (true)` head — prefetch, compact prep, model call setup |
+| `query.loop-continue.ts` | same | `maxTurns` gate + state carry into next iteration |
+| `toolExecution.run-tool-use.ts` | `src/services/tools/toolExecution.ts` | `runToolUse` — lookup, abort, permission + call pipeline |
+| `runAgent.entry.ts` | `src/tools/AgentTool/runAgent.ts` | nested agent `runAgent` spawn + `maxTurns` |
+
+### Bone — compaction
+
+| File | Upstream | What it shows |
+|------|----------|---------------|
+| `compact.build-and-run.ts` | `src/services/compact/compact.ts` | `buildPostCompactMessages` + `compactConversation` entry |
+
+### Flesh — prompt, context, hooks
+
+| File | Upstream | What it shows |
+|------|----------|---------------|
+| `systemPrompt.build-effective.ts` | `src/utils/systemPrompt.ts` | `buildEffectiveSystemPrompt` — agent/custom/default merge |
+| `attachments.get-messages.ts` | `src/utils/attachments.ts` | `getAttachmentMessages` → yield attachment messages |
+| `attachments.nested-memory.ts` | same | `getNestedMemoryAttachmentsForFile` — CLAUDE.md + rules traversal |
+| `toolHooks.run-pre-tool-use.ts` | `src/services/tools/toolHooks.ts` | `runPreToolUseHooks` — hook permission + input rewrite |
+
+| `Agent` trait | claude-code symbol |
+|---------------|---------------------|
+| `run_turn` | `query(params)` → `queryLoop` |
+| `continue_turn` | next `while (true)` iteration after tool results appended |
+| `steer` | `messageQueueManager` + `createUserInterruptionMessage` |
+| `on_event` | `AsyncGenerator` yields (`StreamEvent`, `Message`, attachments) |
+| `budget_remaining` | `maxTurns`, `taskBudgetRemaining`, reactive/auto compact gates |
+
+**Worth copying later:** `toolOrchestration.ts` parallel dispatch, `sessionStorage.ts`, `Tool.ts` `findToolByName`, reactive compact path, skill-search prefetch.
+
+---
+
 ## Design contrasts
 
-| Concern | Pi / OMP | Hermes | AI SDK | Eve | OpenClaw |
-|---------|----------|--------|--------|-----|----------|
-| Loop owner | `agentLoop` generator | `run_conversation` while | `generateText` do-while | harness `StepFn` + `ToolLoopAgent` (1 step) | `runEmbeddedAttempt` → pi `session.prompt()` |
-| Message model | `AgentMessage` → `convertToLlm` | OpenAI dicts | `ModelMessage` | `ModelMessage` on `HarnessSession` | pi `AgentMessage` via embedded session |
-| Memory | extension hooks / session file | `MEMORY.md`/`USER.md` frozen snapshot + provider prefetch fence | — | workflow session state | `MEMORY.md` + plugin `buildMemoryPromptSection` + flush runs |
-| Skills inject | extension / product layer | `<available_skills>` index + `skill_view` / `skill_manage` | app-level | runtime rehydrate | `<available_skills>` XML in system prompt |
-| Tool surface | registry + extensions | agent-level + registry | `ToolSet` on agent | rehydrate at step | `createOpenClawCodingTools` + policy pipeline |
-| Subagents | `task` → child session | `delegate_task` | — (app-level) | delegated sessions via runtime | sandbox subagent session keys |
-| Mid-run input | steering queue | interrupt flag | `abortSignal` | park + resume `StepInput` | session write lock + inbound queue |
-| Tool approval | extension hooks | `approval_callback` | `toolApproval` / `needsApproval` | park `PendingInputBatch` | hooks + message tool delivery modes |
-| Step budget | deadline / soft budget | `IterationBudget` | `stopWhen` (default 20) | `isStepCount(1)` per workflow step | context window + compaction + memory flush gate |
+| Concern | Pi / OMP | Hermes | AI SDK | Eve | OpenClaw | Crush | claude-code |
+|---------|----------|--------|--------|-----|----------|-------|-------------|
+| Loop owner | `agentLoop` generator | `run_conversation` while | `generateText` do-while | harness `StepFn` + `ToolLoopAgent` (1 step) | `runEmbeddedAttempt` → pi `session.prompt()` | `sessionAgent.Run` → fantasy agent | `query` / `queryLoop` async generator |
+| Message model | `AgentMessage` → `convertToLlm` | OpenAI dicts | `ModelMessage` | `ModelMessage` on `HarnessSession` | pi `AgentMessage` via embedded session | fantasy messages + SQLite session | Anthropic SDK message dicts |
+| Memory | extension hooks / session file | `MEMORY.md`/`USER.md` frozen snapshot + provider prefetch fence | — | workflow session state | `MEMORY.md` + plugin `buildMemoryPromptSection` + flush runs | context files via `loadContextFiles` | attachment messages + CLAUDE.md traversal |
+| Skills inject | extension / product layer | `<available_skills>` index + `skill_view` / `skill_manage` | app-level | runtime rehydrate | `<available_skills>` XML in system prompt | `SKILL.md` catalog in `internal/skills/` | skill search prefetch (feature-gated) |
+| Tool surface | registry + extensions | agent-level + registry | `ToolSet` on agent | rehydrate at step | `createOpenClawCodingTools` + policy pipeline | hooked tools + MCP | `Tool.ts` registry + `runToolUse` |
+| Subagents | `task` → child session | `delegate_task` | — (app-level) | delegated sessions via runtime | sandbox subagent session keys | — (coordinator multiplex) | `runAgent.ts` nested runs |
+| Mid-run input | steering queue | interrupt flag | `abortSignal` | park + resume `StepInput` | session write lock + inbound queue | `messageQueue` while busy | command queue + interruption messages |
+| Tool approval | extension hooks | `approval_callback` | `toolApproval` / `needsApproval` | park `PendingInputBatch` | hooks + message tool delivery modes | `internal/permission/` + PreToolUse hooks | `canUseTool` + `toolHooks` |
+| Step budget | deadline / soft budget | `IterationBudget` | `stopWhen` (default 20) | `isStepCount(1)` per workflow step | context window + compaction + memory flush gate | fantasy turn limits | `maxTurns` + reactive/auto compact |
 
 ## What this repo is not
 
 - **Not a framework** — no build, no dependency wiring.
-- **Not a translation** — TypeScript and Python copied verbatim (middle sections omitted where noted in headers).
+- **Not a translation** — TypeScript, Python, and Go copied verbatim (middle sections omitted where noted in headers).
 - **Not exhaustive** — see “Worth copying later” lists above.
 
 ## Adding another `impl`
 
-1. Copy upstream functions/classes into `snippets/<name>/` with a source header.
-2. Map symbols to `src/agent.rs` in this file.
-3. Do not rewrite into Rust except for trait documentation.
+1. Add the repo to [repos.manifest.json](.agents/skills/crawl-reference-repos/repos.manifest.json) and a crawl section in [reference-repos.md](.agents/skills/crawl-reference-repos/reference-repos.md).
+2. Clone upstream as a sibling (`../<clone_dir>/`), then invoke [crawl-reference-repos](.agents/skills/crawl-reference-repos/SKILL.md).
+3. Copy upstream functions/classes into `snippets/<name>/` with a source header.
+4. Map symbols to `src/agent.rs` in this file (marker `impl Agent for Foo` only).
+5. Do not rewrite into Rust except for trait documentation.

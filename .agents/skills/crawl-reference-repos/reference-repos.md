@@ -115,9 +115,9 @@ Use with ripgrep; line numbers drift — always verify with `rg -n` before writi
 | Flesh (skills) | `internal/skills/` | `CatalogEntry`, `SKILL.md` discovery |
 | MCP | `internal/agent/tools/mcp/` | MCP client, server instructions injection |
 
-**Already in catalog:** (none yet)
+**Already in catalog:** `snippets/crush/` (brain + session + prompt/skills/hooks)
 
-**Worth next:** `agent.go` Run loop + queue drain, `hooked_tool.go`, `prompts.go` context file injection (AGENTS.md / CLAUDE.md), `internal/permission/`, LSP context wiring in `internal/lsp/`.
+**Worth next:** full `agent.go` `Stream` callbacks, `internal/permission/`, LSP context in `internal/lsp/`, `internal/agent/tools/mcp/`, `coordinator.Cancel`.
 
 ---
 
@@ -136,9 +136,9 @@ Use with ripgrep; line numbers drift — always verify with `rg -n` before writi
 | Flesh (hooks) | `src/services/tools/toolHooks.ts` | shared hook runner for query + REPL |
 | Subagents | `src/tools/AgentTool/runAgent.ts` | nested agent runs, max turns |
 
-**Already in catalog:** (none yet)
+**Already in catalog:** `snippets/claude-code/` (brain + compact + prompt/attachments/hooks/subagent)
 
-**Worth next:** `query.ts` main loop entry, `toolExecution.ts` permission + hook pipeline, `compact.ts` reactive compact, `attachments.ts` memory/rules loading.
+**Worth next:** `toolOrchestration.ts` parallel dispatch, `sessionStorage.ts`, `Tool.ts` `findToolByName`, reactive compact path, skill-search prefetch.
 
 ---
 
